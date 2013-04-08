@@ -65,8 +65,8 @@ class BitReader {
         void set(int p_j, int p_k, Xapian::termpos p_pos_j, Xapian::termpos p_pos_k) { j = p_j; k = p_k; pos_j = p_pos_j; pos_k = p_pos_k; }
         DIState() { set(0, 0, 0, 0); }
         DIState(int p_j, int p_k, Xapian::termpos p_pos_j, Xapian::termpos p_pos_k) { set(p_j, p_k, p_pos_j, p_pos_k); }
-        bool is_next() { return j + 1 < k; };
-        bool is_initialized() { return !(j == 0 && k == 0 && pos_j == 0 && pos_k == 0); }
+        bool is_next() const { return j + 1 < k; };
+        bool is_initialized() const { return !(j == 0 && k == 0 && pos_j == 0 && pos_k == 0); }
         Xapian::termpos pos_j, pos_k;
         int j, k;
     };

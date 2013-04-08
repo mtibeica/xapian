@@ -66,6 +66,61 @@ inline int my_fls(unsigned mask)
     return result + flstab[mask];
 }
 
+static const unsigned char msb_lut[256] =
+{
+	0, 0, 1, 1, 2, 2, 2, 2, // 0000_0000 - 0000_0111
+	3, 3, 3, 3, 3, 3, 3, 3, // 0000_1000 - 0000_1111
+	4, 4, 4, 4, 4, 4, 4, 4, // 0001_0000 - 0001_0111
+	4, 4, 4, 4, 4, 4, 4, 4, // 0001_1000 - 0001_1111
+	5, 5, 5, 5, 5, 5, 5, 5, // 0010_0000 - 0010_0111
+	5, 5, 5, 5, 5, 5, 5, 5, // 0010_1000 - 0010_1111
+	5, 5, 5, 5, 5, 5, 5, 5, // 0011_0000 - 0011_0111
+	5, 5, 5, 5, 5, 5, 5, 5, // 0011_1000 - 0011_1111
+
+	6, 6, 6, 6, 6, 6, 6, 6, // 0100_0000 - 0100_0111
+	6, 6, 6, 6, 6, 6, 6, 6, // 0100_1000 - 0100_1111
+	6, 6, 6, 6, 6, 6, 6, 6, // 0101_0000 - 0101_0111
+	6, 6, 6, 6, 6, 6, 6, 6, // 0101_1000 - 0101_1111
+	6, 6, 6, 6, 6, 6, 6, 6, // 0110_0000 - 0110_0111
+	6, 6, 6, 6, 6, 6, 6, 6, // 0110_1000 - 0110_1111
+	6, 6, 6, 6, 6, 6, 6, 6, // 0111_0000 - 0111_0111
+	6, 6, 6, 6, 6, 6, 6, 6, // 0111_1000 - 0111_1111
+
+	7, 7, 7, 7, 7, 7, 7, 7, // 1000_0000 - 1000_0111
+	7, 7, 7, 7, 7, 7, 7, 7, // 1000_1000 - 1000_1111
+	7, 7, 7, 7, 7, 7, 7, 7, // 1001_0000 - 1001_0111
+	7, 7, 7, 7, 7, 7, 7, 7, // 1001_1000 - 1001_1111
+	7, 7, 7, 7, 7, 7, 7, 7, // 1010_0000 - 1010_0111
+	7, 7, 7, 7, 7, 7, 7, 7, // 1010_1000 - 1010_1111
+	7, 7, 7, 7, 7, 7, 7, 7, // 1011_0000 - 1011_0111
+	7, 7, 7, 7, 7, 7, 7, 7, // 1011_1000 - 1011_1111
+
+	7, 7, 7, 7, 7, 7, 7, 7, // 1100_0000 - 1100_0111
+	7, 7, 7, 7, 7, 7, 7, 7, // 1100_1000 - 1100_1111
+	7, 7, 7, 7, 7, 7, 7, 7, // 1101_0000 - 1101_0111
+	7, 7, 7, 7, 7, 7, 7, 7, // 1101_1000 - 1101_1111
+	7, 7, 7, 7, 7, 7, 7, 7, // 1110_0000 - 1110_0111
+	7, 7, 7, 7, 7, 7, 7, 7, // 1110_1000 - 1110_1111
+	7, 7, 7, 7, 7, 7, 7, 7, // 1111_0000 - 1111_0111
+	7, 7, 7, 7, 7, 7, 7, 7, // 1111_1000 - 1111_1111
+};
+
+// Highly optimised highest_order_bit() implementation.
+inline int highest_order_bit(int x)
+{
+    int byte;
+    int byte_cnt;
+    for (byte_cnt = sizeof(int) - 1; byte_cnt >= 0; byte_cnt--)
+    {
+        byte = (x >> (byte_cnt * 8)) & 0xff;
+        if (byte != 0)
+        {
+            return msb_lut[byte] + (byte_cnt * 8);
+        }
+    }
+    return 0;
+}
+
 namespace Xapian {
 
 void
@@ -122,7 +177,7 @@ BitWriter::encode_interpolative(const vector<Xapian::termpos> &pos, int j, int k
 Xapian::termpos
 BitReader::decode(Xapian::termpos outof, bool force)
 {
-    force |= false;
+    (void)force;
     Assert(!force && !di_current.is_initialized());
     size_t bits = my_fls(outof - 1);
     const size_t spare = (1 << bits) - outof;
@@ -184,6 +239,7 @@ void
 BitReader::decode_interpolative(int j, int k, Xapian::termpos pos_j, Xapian::termpos pos_k)
 {
     Assert(!di_current.is_initialized());
+	di_stack.reserve(highest_order_bit(pos_k - pos_j) + 1);
     di_current.set(j, k, pos_j, pos_k);
 }
 
